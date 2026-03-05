@@ -24,6 +24,8 @@ The main goals of this project are:
 ---
 
 ## Project Structure
+
+```
 Project_Data_Analysis
 │
 ├── src
@@ -52,6 +54,8 @@ Project_Data_Analysis
 ├── notebooks
 ├── requirements.txt
 └── README.md
+
+```
 
 
 ---
