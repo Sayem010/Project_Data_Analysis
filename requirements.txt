@@ -1,0 +1,6 @@
+requests
+pandas
+tqdm
+beautifulsoup4
+sqlite-utils
+python-dotenv
