@@ -1,6 +1,1 @@
-requests
-pandas
-tqdm
-beautifulsoup4
-sqlite-utils
-python-dotenv
+requests>=2.31.0

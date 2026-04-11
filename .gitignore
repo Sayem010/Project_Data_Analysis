@@ -1,29 +1,24 @@
-# Python cache
+# Python
 __pycache__/
 *.pyc
 *.pyo
-
-# Virtual environment
 .venv/
 venv/
 env/
+*.egg-info/
 
-# VS Code settings
-.vscode/
+# Data files (upload separately to FAUbox/Drive)
+data/
 
-# Logs
-logs/
+# DB is committed to repo root (required by professor)
+# 23455702-seeding.db  ← DO NOT ignore this
 
-# Database
-*.db
-*.sqlite3
+# Exports (optional)
+export_output/
 
-# Data downloads
-data/raw_downloads/
-
-# OS files
+# OS
 .DS_Store
 Thumbs.db
 
-# Jupyter notebooks checkpoints
-.ipynb_checkpoints/ 
+# VS Code
+.vscode/
