@@ -151,16 +151,14 @@ Many projects lack formal version strings or have only implicit versions embedde
 
 ## Data Sources Summary
 
-| Repository | Query Terms Used | Projects Found |
-|------------|-----------------|----------------|
-| AUSSDA | qualitative, interview, focus group, qualitative research, interview transcripts | ~15–50 |
-| UKDS | qualitative, interview, focus group, ethnography, qualitative research, thematic analysis, grounded theory, qdpx | Variable |
-
----
+| Repository | Projects | Files Downloaded | Files Login-Required |
+|------------|----------|-----------------|---------------------|
+| AUSSDA | 1,594 | 2,627 | ~1,823 (SUF editions) |
+| UKDS | 630 (via OAI-PMH) | 0 | 630 (all login-required) |
+| **Total** | **11,967** | **2,627** | **~12,196** |
 
 ## Submission
-
 - **Database:** `23455702-seeding.db` in repo root
 - **GitHub:** https://github.com/Sayem010/Project_Data_Analysis
-- **Data folder:** [FAUbox / Google Drive link — to be added after upload]
 - **Git tag:** `part-1-release`
+- **Data folder:** [add FAUbox/Drive link here]
