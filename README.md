@@ -161,4 +161,4 @@ Many projects lack formal version strings or have only implicit versions embedde
 - **Database:** `23455702-seeding.db` in repo root
 - **GitHub:** https://github.com/Sayem010/Project_Data_Analysis
 - **Git tag:** `part-1-release`
-- **Data folder:** [add FAUbox/Drive link here]
+- **Data folder:** https://faubox.rrze.uni-erlangen.de/getlink/fiGUSAwEFHnMfzz6rchjfv/
