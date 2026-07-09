@@ -1,1 +1,6 @@
 requests>=2.31.0
+
+# Part 2 (classification) - primary-data text extraction
+pypdf>=4.0.0
+python-docx>=1.1.0
+striprtf>=0.0.26

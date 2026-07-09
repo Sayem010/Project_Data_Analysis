@@ -162,3 +162,186 @@ Many projects lack formal version strings or have only implicit versions embedde
 - **GitHub:** https://github.com/Sayem010/Project_Data_Analysis
 - **Git tag:** `part-1-release`
 - **Data folder:** https://faubox.rrze.uni-erlangen.de/getlink/fiGUSAwEFHnMfzz6rchjfv/
+
+---
+
+# Part 2 — Classification (ISIC Rev. 5)
+
+Part 2 (a) assigns each project a **PROJECT_TYPE** derived from its file types,
+and (b) classifies every project and every downloaded primary-data file into an
+**ISIC Revision 5 division** — "two levels down", i.e. divisions not just
+sections (per the assignment). ISIC = the UN International Standard Industrial
+Classification of All Economic Activities.
+
+All Part 2 work is performed on a **separate database**,
+`23455702-sq26-classification.db` (a copy of the Part 1 seeding DB), so the
+Part 1 database stays pristine. That DB is tagged `classification-results`.
+
+## Step 1 — Project types (`type` column)
+
+Each project is filtered into one of four `PROJECT_TYPE` values, derived from the
+file extensions recorded for it:
+
+| Type | Rule |
+|------|------|
+| `QDA_PROJECT` | has a file with a QDA extension (`.qdpx`, NVivo, ATLAS.ti, MAXQDA …) |
+| `QD_PROJECT` | not QDA, but has primary-data files (`txt/pdf/rtf/docx …`) |
+| `OTHER_PROJECT` | not QD, but has other valid data files (tabular/statistical/containers) |
+| `NOT_A_PROJECT` | no files → nothing can be derived |
+
+Result: **0 QDA_PROJECT** (no `.qdpx` files exist in the collected data),
+**936 QD_PROJECT** (AUSSDA records with primary documents), **10,388 OTHER_PROJECT**
+(all UKDS, which only expose a login-walled container file, + AUSSDA tabular-only),
+**643 NOT_A_PROJECT** (no files).
+
+## Approach
+
+A **local, deterministic, rule-based classifier** is used (no external API, no
+network, fully reproducible). Each ISIC division is associated with weighted
+terms drawn from two sources:
+
+1. **Auto-seeded terms** — extracted from each division's official ISIC title,
+   guaranteeing that all 87 divisions are reachable.
+2. **Curated terms** — a hand-built map of strong, discriminative signals for
+   the topics that dominate qualitative social-science research (health,
+   education, social work, public administration, labour, agriculture, …).
+
+For a given text the classifier lower-cases it, scores every division by the
+weighted terms that appear (single words matched on word boundaries, phrases
+matched verbatim), and assigns the highest-scoring division. A text with no
+matching term is left unclassified. The same input always produces the same
+division.
+
+## Two tiers of source data
+
+| Tier | Source | Covers |
+|------|--------|--------|
+| **Tier 1** | Project **metadata** (title + description + keywords) | all 11,967 projects |
+| **Tier 2** | **Primary-data content** of downloaded files (PDF/DOCX/TXT/RTF text, plus the text files inside QDA/ZIP containers) | the 2,626 downloaded AUSSDA files |
+
+Files whose bytes contain no readable text (e.g. binary `.zsav`/`.sav`
+statistics files) **inherit** their project's Tier-1 division, flagged with
+`classification_confidence = 0.0` to distinguish inherited from content-derived
+classes.
+
+## Schema additions
+
+The classification is stored by adding columns to the existing Part 1 tables
+(via idempotent `ALTER TABLE`; Part 1 tables and grading are unaffected):
+
+**`projects`**
+| Column | Meaning |
+|--------|---------|
+| `type` | PROJECT_TYPE (`QDA_PROJECT`/`QD_PROJECT`/`OTHER_PROJECT`/`NOT_A_PROJECT`) |
+| `no_project_files` | total number of files recorded for the project |
+| `primary_class` | full ISIC label of the most likely division |
+| `secondary_class` | full ISIC label of the 2nd division (if any) |
+| `isic_division` | 2-digit division code, e.g. `86` (NULL = unclassified) |
+| `isic_division_label` | `NN - Title`, e.g. `86 - Human health activities` |
+| `classification_source` | `TIER1_METADATA` |
+| `classification_confidence` | rule-based match score |
+
+**`files`**
+| Column | Meaning |
+|--------|---------|
+| `isic_division` | division code assigned to the file |
+| `isic_division_label` | `NN - Title` |
+| `classification_confidence` | `>0` = derived from file content; `0.0` = inherited from project |
+
+## Running Part 2
+
+```bash
+python run_part2.py                 # full: migrate -> types -> Tier 1 -> Tier 2 -> reports + deliverables
+python run_part2.py --skip-files    # skip Tier 2 file-content classification (fast)
+python run_part2.py --report-only   # regenerate stats + XLSX + PDF only
+```
+
+Individual stages:
+```bash
+python -m classification.migrate_schema
+python -m classification.project_type      # Step 1: PROJECT_TYPE
+python -m classification.classify_projects # Tier 1
+python -m classification.classify_files    # Tier 2
+python -m classification.report_stats      # stats (CSV + Markdown)
+python -m classification.export_xlsx       # Step 4c XLSX deliverable
+python -m classification.report_pdf        # Step 4d PDF deliverable
+```
+
+## Part 2 structure
+
+```
+classification/
+├── isic_rev5.py          ← ISIC Rev.5 reference (22 sections, 87 divisions)
+├── project_type.py       ← Step 1: PROJECT_TYPE from file extensions
+├── classifier.py         ← rule-based keyword classifier (top-N divisions)
+├── text_extract.py       ← primary-data text extraction (pdf/docx/rtf/txt/zip)
+├── migrate_schema.py     ← adds PROJECT_TYPE + ISIC columns to projects + files
+├── classify_projects.py  ← Tier 1 (metadata) -> primary/secondary class
+├── classify_files.py     ← Tier 2 (file content)
+├── report_stats.py       ← distribution stats + CSV/Markdown (+ type x repo matrix)
+├── export_xlsx.py        ← Step 4c XLSX deliverable table
+├── report_pdf.py         ← Step 4d PDF report (vector histograms + top-20 tables)
+└── data/
+    └── isic_rev5_structure.csv   ← authoritative UNSD source file (provenance)
+run_part2.py              ← Part 2 entry point
+```
+
+## Results
+
+| Level | Classified | Coverage |
+|-------|-----------|----------|
+| Projects | 11,500 / 11,967 | **96.1 %** |
+| Downloaded files | 2,606 / 2,626 | **99.2 %** (1,891 from content, 715 inherited) |
+
+**Distributions by repository × project type** (the page-29 matrix):
+
+| Repository | QDA_PROJECT | QD_PROJECT |
+|------------|------------:|-----------:|
+| 1 — UKDS | 0 | 0 (all UKDS = OTHER_PROJECT, files login-walled) |
+| 2 — AUSSDA | 0 | 936 (dominant class: 84 – Public administration) |
+
+**Top ISIC sections (all classified projects):**
+
+| Section | Title | Projects | % |
+|---------|-------|---------:|--:|
+| R | Human health and social work activities | 2,530 | 22.0 % |
+| O | Administrative and support service activities | 2,517 | 21.9 % |
+| P | Public administration and defence | 1,874 | 16.3 % |
+| Q | Education | 1,522 | 13.2 % |
+| N | Professional, scientific and technical activities | 499 | 4.3 % |
+
+## Deliverables (submit on moo.uni1.de)
+
+| File | Step | Content |
+|------|------|---------|
+| `deliverables/23455702-sq26-classification-table.xlsx` | 4c | one row per project: `repository_id, project_type, project_title, primary_class, secondary_class, no_project_files` |
+| `deliverables/23455702-sq26-classification-report.pdf` | 4d | per repository: primary-class histogram (vector, counts on bars) + top-20 table + comments |
+| `23455702-sq26-classification.db` | 4a | the Part 2 database, committed to the repo and git-tagged `classification-results` |
+
+Machine-readable stats are also written to `export_output/`
+(`classification_projects_by_division.csv`, `classification_by_section.csv`,
+`PART2_classification_report.md`).
+
+Additionally, **Step 4b** requires filling the Google Form
+(<https://forms.gle/wxTGQFBQbBvFi3N69>) once per repository with the project
+types found, their counts, and the dominant class — see the PDF report's
+per-repository summary pages for those figures.
+
+## Technical Challenges (Part 2 — Data)
+
+1. **German-language metadata.** A large share of AUSSDA records have only
+   short German topic labels (e.g. *"Thema: Umweltethik"*). The English keyword
+   classifier cannot match these, which accounts for most of the 467
+   unclassified projects. A multilingual keyword layer is a future improvement.
+2. **Research topic vs. economic activity.** ISIC classifies *economic
+   activities*, but qualitative studies describe *subjects*. Mapping, e.g.,
+   labour-market research to division 78 (*Employment activities*) is the
+   closest available fit rather than an exact match — an inherent limitation of
+   applying an industrial classification to research metadata.
+3. **No file content for most projects.** The 10,373 UKDS projects and the
+   restricted AUSSDA SUF datasets have no downloadable files, so they can only
+   be classified from Tier-1 metadata; Tier-2 content classification is limited
+   to the 2,626 successfully downloaded AUSSDA files.
+4. **Binary primary-data files.** Statistics files (`.zsav`, `.sav`, `.dta`)
+   contain no readable text; those files inherit their project's class rather
+   than being classified from content.

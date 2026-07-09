@@ -11,10 +11,19 @@ env/
 data/
 
 # DB is committed to repo root (required by professor)
-# 23455702-seeding.db  ← DO NOT ignore this
+# 23455702-seeding.db  <- DO NOT ignore this
+# SQLite WAL sidecar files (transient, must NOT be committed)
+*.db-shm
+*.db-wal
 
 # Exports (optional)
 export_output/
+
+# Professor's grading tool (cloned separately, not part of this project)
+sq26-grading/
+
+# Packaged data archive for FAUbox/Drive upload
+data.zip
 
 # OS
 .DS_Store
